@@ -2,7 +2,10 @@ module github.com/khhini/go-distributed-web-app
 
 go 1.18
 
-require github.com/gin-gonic/gin v1.7.7
+require (
+	github.com/gin-gonic/gin v1.7.7
+	github.com/rs/xid v1.4.0
+)
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect

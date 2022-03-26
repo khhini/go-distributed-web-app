@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 	"github.com/khhini/go-distributed-web-app/docs"
 	"github.com/khhini/go-distributed-web-app/handlers"
 	swaggerFiles "github.com/swaggo/files"
@@ -39,7 +40,16 @@ func init() {
 	log.Println("Connected to MongoDB")
 	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
 
-	recipesHandler = handlers.NewRecipesHandler(ctx, collection)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	status := redisClient.Ping()
+	log.Println(status)
+
+	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
 }
 
 // @contact.name   API Support

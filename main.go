@@ -37,9 +37,15 @@ var recipes []Recipe
 func init() {
 	recipes = make([]Recipe, 0)
 }
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
 
 func main() {
 	router := gin.Default()
 	router.POST("/recipes", NewRecipeHandler)
+	router.GET("/", IndexHandler)
 	router.Run()
 }

@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/khhini/go-distributed-web-app/models"
+	"github.com/rs/xid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -40,8 +42,8 @@ func NewAuthHandler(ctx context.Context, collection *mongo.Collection) *AuthHand
 	}
 }
 
-// AuthMiddleware godoc
-func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
+// AuthJWTMiddleware godoc
+func (handler *AuthHandler) AuthJWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenValue := c.GetHeader("Authorization")
 		claims := &Claims{}
@@ -61,7 +63,7 @@ func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-// SignInHandler godoc
+// SignInJWTHandler godoc
 // @Summary      Sigin API with username and password
 // @Description  Sigin API with username and password
 // @Tags         recipes
@@ -74,7 +76,7 @@ func (handler *AuthHandler) AuthMiddleware() gin.HandlerFunc {
 // @Failure		 401  {string}  StatusUnauthorized
 // @Failure		 500  {string}  StatusInternalServerError
 // @Router       /singin [post]
-func (handler *AuthHandler) SignInHandler(c *gin.Context) {
+func (handler *AuthHandler) SignInJWTHandler(c *gin.Context) {
 	var user models.User
 	var dbUser models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
@@ -140,7 +142,7 @@ func (handler *AuthHandler) SignInHandler(c *gin.Context) {
 // @Failure		 404  {string}  StatusNotFound
 // @Failure		 401  {string}  StatusUnauthorized
 // @Failure		 500  {string}  StatusInternalServerError
-// @Router       /singin [post]
+// @Router       /signin [post]
 func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
 	tokenValue := c.GetHeader("Authorization")
 	claims := &Claims{}
@@ -184,4 +186,80 @@ func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
 		Expires: expirationTime,
 	}
 	c.JSON(http.StatusOK, jwtOutput)
+}
+
+// AuthSessionMiddleware godoc
+func (handler *AuthHandler) AuthSessionMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		sessionToken := session.Get("token")
+		if sessionToken == nil {
+			c.JSON(http.StatusForbidden, gin.H{
+				"message": "Not logged",
+			})
+			c.Abort()
+		}
+		c.Next()
+	}
+}
+
+// SignInSessionHandler godoc
+func (handler *AuthHandler) SignInSessionHandler(c *gin.Context) {
+	var user models.User
+	var dbUser models.User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	cur := handler.collection.FindOne(handler.ctx, bson.M{
+		"username": user.Username,
+	})
+	if cur.Err() != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid Username or Password",
+		})
+		return
+	}
+
+	cur.Decode(&dbUser)
+	err := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(user.Password))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid Username or Password",
+		})
+		return
+	}
+
+	sessionToken := xid.New().String()
+	session := sessions.Default(c)
+	session.Set("username", user.Username)
+	session.Set("token", sessionToken)
+	session.Save()
+
+	c.JSON(http.StatusOK, gin.H{"message": "User signed in"})
+}
+
+// SignOutHandler godoc
+// @Summary      Sign Out user
+// @Description  Sign Out user by removing cookies
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Success      200  {string}  StatusOK
+// @Failure		 400  {string}  StatusBadRequest
+// @Failure		 404  {string}  StatusNotFound
+// @Failure		 401  {string}  StatusUnauthorized
+// @Failure		 500  {string}  StatusInternalServerError
+// @Router       /signout [post]
+func (handler *AuthHandler) SignOutHandler(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Clear()
+	session.Save()
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Signed out...",
+	})
 }

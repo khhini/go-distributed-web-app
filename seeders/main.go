@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User godoc
 type User struct {
 	Password string `bson:"password"`
 	Username string `bson:"username"`

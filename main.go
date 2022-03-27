@@ -15,7 +15,14 @@ type Recipe struct {
 	PublishedAt  time.Time `json:"publishedAt"`
 }
 
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
 func main() {
 	router := gin.Default()
+	router.GET("/", IndexHandler)
 	router.Run()
 }

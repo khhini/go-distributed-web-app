@@ -3,123 +3,123 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var objectID string
-
-func SetupRouter() *gin.Engine {
-	router := gin.Default()
-	return router
-}
+var objectID primitive.ObjectID
 
 func TestIndexHandler(t *testing.T) {
 	mockUserResp := `{"ping":"pong"}`
 	r := SetupRouter()
-	r.GET("/", IndexHandler)
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockUserResp, w.Body.String())
 }
 
 func TestNewRecipeHandler(t *testing.T) {
 	r := SetupRouter()
-	r.POST("/recipes", NewRecipeHandler)
 
 	recipe := Recipe{
 		Name: "New York Pizza",
 	}
 	jsonValue, _ := json.Marshal(recipe)
-	req, _ := http.NewRequest("POST", "/recipes", bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequest("POST", "/recipes", bytes.NewBuffer(jsonValue))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
+	var payload map[string]string
+	json.Unmarshal([]byte(w.Body.String()), &payload)
+	objectID, _ = primitive.ObjectIDFromHex(payload["recipeID"])
+
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.NotNil(t, objectID)
 }
 
 func TestListRecipesHandler(t *testing.T) {
 	r := SetupRouter()
-	r.GET("/recipes", ListRecipesHandler)
 
-	req, _ := http.NewRequest("GET", "/recipes", nil)
+	req, err := http.NewRequest("GET", "/recipes", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	var recipes []Recipe
 	json.Unmarshal([]byte(w.Body.String()), &recipes)
 
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 493, len(recipes))
+	assert.Equal(t, 494, len(recipes))
 }
 
-// func TestUpdateRecipeHandler(t *testing.T) {
-// 	r := SetupRouter()
-// 	r.PUT("/recipes/:id", UpdateRecipeHandler)
+func TestUpdateRecipeHandler(t *testing.T) {
+	r := SetupRouter()
 
-// 	recipe := Recipe{
-// 		ID:   primitive.ObjectIDFromHex("")
-// 		Name: "Gnocchi",
-// 		Ingredients: []string{
-// 			"5 large Idaho potatoes\r",
-// 			"2 eggs\r",
-// 			"3/4 cup grated Parmesan\r",
-// 			"3 1/2 cup all-purpose flour\r",
-// 		},
-// 	}
+	recipe := Recipe{
+		ID:   objectID,
+		Name: "Gnocchi",
+		Ingredients: []string{
+			"5 large Idaho potatoes\r",
+			"2 eggs\r",
+			"3/4 cup grated Parmesan\r",
+			"3 1/2 cup all-purpose flour\r",
+		},
+	}
 
-// 	jsonValue, _ := json.Marshal(recipe)
-// 	reqFound, _ := http.NewRequest("PUT", "/recipes/"+recipe.ID, bytes.NewBuffer(jsonValue))
-// 	w := httptest.NewRecorder()
-// 	r.ServeHTTP(w, reqFound)
+	jsonValue, _ := json.Marshal(recipe)
+	reqFound, err := http.NewRequest("PUT", fmt.Sprintf("/recipes/%s", recipe.ID.Hex()), bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-// 	reqNotFound, _ := http.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(jsonValue))
-// 	w = httptest.NewRecorder()
-// 	r.ServeHTTP(w, reqNotFound)
+	reqNotFound, _ := http.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(jsonValue))
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqNotFound)
 
-// 	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 
-// }
+}
 
-// func TestDeleteRecipeHandler(t *testing.T) {
-// 	r := SetupRouter()
-// 	r.DELETE("/recipes/:id", DeleteRecipeHandler)
-// 	recipeID := "c0283p3d0cvuglq85lpg"
-// 	reqFound, _ := http.NewRequest("DELETE", "/recipes/"+recipeID, nil)
-// 	w := httptest.NewRecorder()
-// 	r.ServeHTTP(w, reqFound)
+func TestDeleteRecipeHandler(t *testing.T) {
+	r := SetupRouter()
 
-// 	assert.Equal(t, http.StatusOK, w.Code)
+	reqFound, _ := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
 
-// 	reqNotFound, _ := http.NewRequest("DELETE", "/recipes/"+recipeID, nil)
-// 	w = httptest.NewRecorder()
-// 	r.ServeHTTP(w, reqNotFound)
+	assert.Equal(t, http.StatusOK, w.Code)
 
-// 	assert.Equal(t, http.StatusNotFound, w.Code)
-// }
+	reqNotFound, _ := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqNotFound)
 
-// func TestSearchRecipesHandler(t *testing.T) {
-// 	r := SetupRouter()
-// 	r.GET("/recipes/search", SearchRecipesHandler)
-// 	tag := "italian"
-// 	req, _ := http.NewRequest("GET", "/recipes/search?tag="+tag, nil)
-// 	w := httptest.NewRecorder()
-// 	r.ServeHTTP(w, req)
-// 	var recipes []Recipe
-// 	json.Unmarshal([]byte(w.Body.String()), &recipes)
-// 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
 
-// 	for _, x := range recipes {
-// 		assert.Contains(t, []string(x.Tags), tag)
-// 	}
+func TestSearchRecipesHandler(t *testing.T) {
+	r := SetupRouter()
 
-// }
+	tag := "italian"
+	req, err := http.NewRequest("GET", "/recipes/search?tag="+tag, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	var recipes []Recipe
+	json.Unmarshal([]byte(w.Body.String()), &recipes)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
+	for _, x := range recipes {
+		assert.Contains(t, []string(x.Tags), tag)
+	}
+}

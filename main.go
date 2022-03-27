@@ -19,6 +19,12 @@ type Recipe struct {
 	PublishedAt  time.Time `json:"publishedAt"`
 }
 
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
@@ -44,12 +50,6 @@ func init() {
 	recipes = make([]Recipe, 0)
 	file, _ := ioutil.ReadFile("recipes.json")
 	_ = json.Unmarshal([]byte(file), &recipes)
-}
-
-func IndexHandler(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"ping": "pong",
-	})
 }
 
 func main() {

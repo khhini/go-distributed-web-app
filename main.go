@@ -19,6 +19,12 @@ type Recipe struct {
 	PublishedAt  time.Time `json:"publishedAt"`
 }
 
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
@@ -81,5 +87,6 @@ func main() {
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipesHandler)
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
+	router.GET("/", IndexHandler)
 	router.Run()
 }

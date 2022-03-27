@@ -46,9 +46,16 @@ func init() {
 	_ = json.Unmarshal([]byte(file), &recipes)
 }
 
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
 func main() {
 	router := gin.Default()
 	router.POST("/recipes", NewRecipeHandler)
 	router.GET("/recipes", ListRecipesHandler)
+	router.GET("/", IndexHandler)
 	router.Run()
 }

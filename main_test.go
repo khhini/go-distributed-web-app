@@ -87,3 +87,20 @@ func TestUpdateRecipeHandler(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
 }
+
+func TestDeleteRecipeHandler(t *testing.T) {
+	r := SetupRouter()
+	r.DELETE("/recipes/:id", DeleteRecipeHandler)
+	recipeID := "c0283p3d0cvuglq85lpg"
+	reqFound, _ := http.NewRequest("DELETE", "/recipes/"+recipeID, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	reqNotFound, _ := http.NewRequest("DELETE", "/recipes/"+recipeID, nil)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqNotFound)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}

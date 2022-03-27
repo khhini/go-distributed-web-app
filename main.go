@@ -40,6 +40,13 @@ func init() {
 	_ = json.Unmarshal([]byte(file), &recipes)
 }
 
+// IndexHandler godoc
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
 // NewRecipeHandler godoc
 // @Summary      Add new recipe
 // @Description  Add new recipe
@@ -195,7 +202,9 @@ func main() {
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	router.GET("/recipes/search", SearchRecipesHandler)
+	router.GET("/", IndexHandler)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.Run()
 }

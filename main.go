@@ -42,6 +42,28 @@ func init() {
 	recipesHandler = handlers.NewRecipesHandler(ctx, collection)
 }
 
+// IndexHandler godoc
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
+// SetupRouter godoc
+func SetupRouter() *gin.Engine {
+	router := gin.Default()
+	router.POST("/recipes", recipesHandler.NewRecipeHandler)
+	router.GET("/recipes", recipesHandler.ListRecipesHandler)
+	router.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+	router.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+	router.GET("/", IndexHandler)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	return router
+}
+
 // @contact.name   API Support
 // @contact.url    http://www.swagger.io/support
 // @contact.email  support@swagger.io
@@ -49,14 +71,5 @@ func init() {
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-
-	router := gin.Default()
-	router.POST("/recipes", recipesHandler.NewRecipeHandler)
-	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-	router.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
-	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	router.Run()
+	SetupRouter().Run()
 }

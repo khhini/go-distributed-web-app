@@ -58,7 +58,8 @@ func (handler *RecipeHandler) NewRecipeHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("New recipe added with id %s", result.InsertedID),
+		"message":  fmt.Sprintf("New recipe added with id %s", result.InsertedID),
+		"recipeID": result.InsertedID,
 	})
 
 }

@@ -21,7 +21,7 @@ import (
 
 // Recipe godoc
 type Recipe struct {
-	ID           primitive.ObjectID `json:"_id" bson:"_id"`
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
 	Name         string             `json:"name" bson:"name"`
 	Tags         []string           `json:"tags" bson:"tags"`
 	Ingredients  []string           `json:"ingredients" bson:"ingredients"`
@@ -51,6 +51,13 @@ func init() {
 	}
 	log.Println("Connected to MongoDB")
 	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+}
+
+// IndexHandler godoc
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
 }
 
 // NewRecipeHandler godoc
@@ -83,7 +90,8 @@ func NewRecipeHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("New recipe added with id %s", result.InsertedID),
+		"message":  fmt.Sprintf("New recipe added with id %s", result.InsertedID),
+		"recipeID": result.InsertedID,
 	})
 
 }
@@ -249,7 +257,9 @@ func main() {
 	router.PUT("/recipes/:id", UpdateRecipeHandler)
 	router.DELETE("/recipes/:id", DeleteRecipeHandler)
 	router.GET("/recipes/search", SearchRecipesHandler)
+	router.GET("/", IndexHandler)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.Run()
 }

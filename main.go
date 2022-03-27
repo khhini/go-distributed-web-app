@@ -19,9 +19,9 @@ import (
 var ctx context.Context
 var err error
 var client *mongo.Client
-var collection *mongo.Collection
 
 var recipesHandler *handlers.RecipeHandler
+var authHandler *handlers.AuthHandler
 
 func init() {
 	// programmatically set swagger info
@@ -38,7 +38,8 @@ func init() {
 		log.Fatal(err)
 	}
 	log.Println("Connected to MongoDB")
-	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+	collection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+	userCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("users")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -50,6 +51,7 @@ func init() {
 	log.Println(status)
 
 	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
+	authHandler = handlers.NewAuthHandler(ctx, userCollection)
 }
 
 // @contact.name   API Support
@@ -61,12 +63,23 @@ func init() {
 func main() {
 
 	router := gin.Default()
-	router.POST("/recipes", recipesHandler.NewRecipeHandler)
+	// store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte(os.Getenv("JWT_SECRET")))
+	// router.Use(sessions.Sessions("recipes_api", store))
+
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-	router.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+	router.POST("/signin", authHandler.SignInHandler)
+	router.POST("/refresh", authHandler.RefreshHandler)
+
+	authorized := router.Group("/")
+	authorized.Use(authHandler.AuthMiddleware())
+	{
+		authorized.POST("/recipes", recipesHandler.NewRecipeHandler)
+		authorized.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+		authorized.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+	}
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.Run()
 }

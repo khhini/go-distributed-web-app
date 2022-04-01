@@ -44,7 +44,7 @@ func init() {
 	userCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("users")
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     os.Getenv("REDIS_SERVER"),
 		Password: "",
 		DB:       0,
 	})
@@ -56,6 +56,41 @@ func init() {
 	authHandler = handlers.NewAuthHandler(ctx, userCollection)
 }
 
+// IndexHandler godoc
+func IndexHandler(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"ping": "pong",
+	})
+}
+
+// SetupRouter godoc
+func SetupRouter() *gin.Engine {
+	router := gin.Default()
+	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte(os.Getenv("JWT_SECRET")))
+	router.Use(sessions.Sessions("recipes_api", store))
+
+	router.GET("/recipes", recipesHandler.ListRecipesHandler)
+	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+
+	router.POST("/signin", authHandler.SignInJWTHandler)
+	router.POST("/signout", authHandler.SignOutHandler)
+	router.POST("/refresh", authHandler.RefreshJWTHandler)
+
+	authorized := router.Group("/")
+	authorized.Use(authHandler.AuthJWTMiddleware())
+	{
+		authorized.POST("/recipes", recipesHandler.NewRecipeHandler)
+		authorized.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+		authorized.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+	}
+
+	router.GET("/", IndexHandler)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	return router
+}
+
 // @contact.name   API Support
 // @contact.url    http://www.swagger.io/support
 // @contact.email  support@swagger.io
@@ -63,26 +98,5 @@ func init() {
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
-
-	router := gin.Default()
-	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte(os.Getenv("JWT_SECRET")))
-	router.Use(sessions.Sessions("recipes_api", store))
-
-	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
-	router.POST("/signin", authHandler.SignInSessionHandler)
-	router.POST("/signout", authHandler.SignOutHandler)
-	router.POST("/refresh", authHandler.RefreshHandler)
-
-	authorized := router.Group("/")
-	authorized.Use(authHandler.AuthSessionMiddleware())
-	{
-		authorized.POST("/recipes", recipesHandler.NewRecipeHandler)
-		authorized.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-		authorized.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
-	}
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	router.Run()
+	SetupRouter().Run()
 }

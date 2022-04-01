@@ -143,7 +143,7 @@ func (handler *AuthHandler) SignInJWTHandler(c *gin.Context) {
 // @Failure		 401  {string}  StatusUnauthorized
 // @Failure		 500  {string}  StatusInternalServerError
 // @Router       /signin [post]
-func (handler *AuthHandler) RefreshHandler(c *gin.Context) {
+func (handler *AuthHandler) RefreshJWTHandler(c *gin.Context) {
 	tokenValue := c.GetHeader("Authorization")
 	claims := &Claims{}
 	tkn, err := jwt.ParseWithClaims(tokenValue, claims, func(token *jwt.Token) (interface{}, error) {

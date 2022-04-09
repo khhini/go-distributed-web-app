@@ -4,15 +4,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// IndexHandler ...
 func IndexHandler(c *gin.Context) {
-	name := c.Params.ByName("name")
 	c.JSON(200, gin.H{
-		"ping": "pong " + name,
+		"ping": "pong",
 	})
 }
 
 func main() {
 	router := gin.Default()
-	router.GET("/:name", IndexHandler)
+	router.GET("/", IndexHandler)
 	router.Run()
 }

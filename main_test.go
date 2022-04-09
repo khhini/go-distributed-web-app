@@ -15,10 +15,22 @@ func SetupRouter() *gin.Engine {
 }
 
 func TestIndexHandler(t *testing.T) {
-	mockUserResp := `{"ping":"pong Hello"}`
+	mockUserResp := `{"ping":"pong"}`
 	r := SetupRouter()
-	r.GET("/:name", IndexHandler)
-	req, _ := http.NewRequest("GET", "/Hello", nil)
+	r.GET("/", IndexHandler)
+	req, _ := http.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, mockUserResp, w.Body.String())
+}
+
+func TestHealthzHandler(t *testing.T) {
+	mockUserResp := `{"ping":"pong"}`
+	r := SetupRouter()
+	r.GET("/healthz", IndexHandler)
+	req, _ := http.NewRequest("GET", "/healthz", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

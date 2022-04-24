@@ -1,0 +1,7 @@
+[production]
+prod-server-1 ansible_user=ansiblecd ansible_ssh_private_key_file=/home/ansiblecd/.ssh/id_rsa
+prod-server-2 ansible_user=ansiblecd ansible_ssh_private_key_file=/home/ansiblecd/.ssh/id_rsa
+
+[load_balancer]
+lb-server ansible_user=ansiblecd ansible_ssh_private_key_file=/home/ansiblecd/.ssh/id_rsa
+

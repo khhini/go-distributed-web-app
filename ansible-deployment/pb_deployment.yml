@@ -1,0 +1,97 @@
+---
+- name: Deploy to Production
+  hosts: all
+  gather_facts: no
+  force_handlers: true
+  tasks:
+    - name: Removing Production Server 1 from Pools
+      copy:
+        src: /etc/haproxy/haproxy.cfg.disable-prod-1
+        dest: /etc/haproxy/haproxy.cfg
+        remote_src: yes
+      become: yes
+      when: inventory_hostname == 'lb-server'
+      
+    - name: Restarting haproxy
+      service:
+        name: haproxy
+        state: restarted
+      become: yes
+      register: disabled_prod1
+      when: inventory_hostname == 'lb-server'
+
+    - name: Updating App in Production Server
+      docker_container:
+        name: go-recipes-api
+        image: "khhini/go-recipes-api:{{IMAGE_TAG}}"
+        state: started
+        recreate: yes
+        env: 
+          REDIS_SERVER: "{{REDIS_SERVER}}"
+          JWT_SECRET: "{{JWT_SECRET}}"
+          MONGO_URI: "{{MONGO_URI}}"
+          MONGO_DATABASE: "{{MONGO_DATABASE}}"
+        published_ports:
+          - 80:8080
+      register: prod1_deployment
+      when: inventory_hostname == 'prod-server-1' and disabled_prod1 is succeeded
+
+    - name: Checking App in Production Server 1 Ready for Handling Request
+      uri:
+        url: http://prod-server-2/healthz
+      register: prod1_hc
+      when: inventory_hostname == 'lb-server' and prod1_deployment is succeeded
+    
+    - name: Add Production Server 1 to Pools and Removing Production Server 1 from Pools
+      copy:
+        src: /etc/haproxy/haproxy.cfg.disable-prod-2
+        dest: /etc/haproxy/haproxy.cfg
+        remote_src: yes
+      become: yes
+      when: inventory_hostname == 'lb-server' and prod1_hc is succeeded
+      
+    - name: Restarting haproxy
+      service:
+        name: haproxy
+        state: restarted
+      become: yes
+      register: disabled_prod2
+      when: inventory_hostname == 'lb-server' and prod1_hc is succeeded
+
+    - name: Updating App in Production Server 2
+      docker_container:
+        name: go-recipes-api
+        image: "khhini/go-recipes-api:{{IMAGE_TAG}}"
+        state: started
+        recreate: yes
+        env: 
+          REDIS_SERVER: "{{REDIS_SERVER}}"
+          JWT_SECRET: "{{JWT_SECRET}}"
+          MONGO_URI: "{{MONGO_URI}}"
+          MONGO_DATABASE: "{{MONGO_DATABASE}}"
+        published_ports:
+          - 80:8080
+      register: prod2_deployment
+      when: inventory_hostname == 'prod-server-2' and disabled_prod2 is succeeded
+
+    - name: Checking App in Production Server 2 Ready for Handling Request
+      uri:
+        url: http://prod-server-2/healthz
+      register: prod2_hc
+      when: inventory_hostname == 'lb-server' and prod2_deployment is succeeded
+
+    - name: Add Production Server 2 to Pools
+      copy:
+        src: /etc/haproxy/haproxy.cfg.enabled-all
+        dest: /etc/haproxy/haproxy.cfg
+        remote_src: yes
+      become: yes
+      when: inventory_hostname == 'lb-server' and prod2_hc is succeeded
+      
+    - name: Restarting haproxy
+      service:
+        name: haproxy
+        state: restarted
+      become: yes
+      register: disabled_prod2
+      when: inventory_hostname == 'lb-server' and prod2_hc is succeeded

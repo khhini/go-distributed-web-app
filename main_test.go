@@ -15,7 +15,7 @@ func SetupRouter() *gin.Engine {
 }
 
 func TestIndexHandler(t *testing.T) {
-	mockUserResp := `{"ping":"pong"}`
+	mockUserResp := `{"ping":"ping"}`
 	r := SetupRouter()
 	r.GET("/", IndexHandler)
 	req, _ := http.NewRequest("GET", "/", nil)
@@ -27,7 +27,7 @@ func TestIndexHandler(t *testing.T) {
 }
 
 func TestHealthzHandler(t *testing.T) {
-	mockUserResp := `{"ping":"pong"}`
+	mockUserResp := `{"ping":"ping"}`
 	r := SetupRouter()
 	r.GET("/healthz", IndexHandler)
 	req, _ := http.NewRequest("GET", "/healthz", nil)

@@ -7,7 +7,7 @@ import (
 // IndexHandler ...
 func IndexHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"ping": "pong",
+		"ping": "ping",
 	})
 }
 
@@ -15,7 +15,7 @@ func IndexHandler(c *gin.Context) {
 // describtion Health Check Handler
 func HealthzHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
-		"ping": "pong",
+		"ping": "ping",
 	})
 }
 

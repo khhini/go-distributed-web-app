@@ -17,26 +17,28 @@ pipeline {
         
     }
     stages {
-        stage('Build'){
+        stage('Test Source Code'){
             steps {
                 sh 'go mod tidy'
-                sh 'docker build -t khhini/go-recipes-api:${GIT_COMMIT} .'
-            }
-        }
-        stage('Testing'){
-            steps {
                 sh 'go test'
             }
         }
-        stage('Deploy'){
+        stage('Build Docker Image'){
+            steps {
+                sh 'docker build -t khhini/go-recipes-api:${GIT_COMMIT} .'
+            }
+        }
+        stage('Push Docker Image'){
             steps {
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                 sh "docker push khhini/go-recipes-api:${GIT_COMMIT}"
                 sh "docker image rm -f khhini/go-recipes-api:${GIT_COMMIT}"
                 sh "docker system prune -f"
-                
+            }
+        }
+        stage('Deploy'){
+            steps {
                 ansiblePlaybook credentialsId: 'ansiblecd', disableHostKeyChecking: true, extras: '-e REDIS_SERVER=${REDIS_SERVER} -e JWT_SECRET=${JWT_SECRET} -e MONGO_URI=${MONGO_URI} -e MONGO_DATABASE=${MONGO_DATABASE} -e IMAGE_TAG=${GIT_COMMIT}', inventory: 'ansible-deployment/hosts', playbook: 'ansible-deployment/pb_deployment.yml'
-                sh 'echo Deploy'
             }
         }
     }

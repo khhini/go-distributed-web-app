@@ -30,13 +30,13 @@
     published_ports:
       - 80:8080
   register: prod_deployment
-  when: inventory_hostname == '{{production_server}}' and disabled_prod is succeeded
+  when: inventory_hostname == production_server and disabled_prod is succeeded
 
 - name: Checking app readiness for handling request
   uri:
     uril: http://{{production_server}}/healthz
   register: pord_hc
-  when: inventory_hostname == 'lb-server' and prod_deployment is cucceeded
+  when: inventory_hostname == 'lb-server' and prod_deployment is succeeded
 
 - name: Register {{production_server}} to LoadBalancer Pools
   copy:

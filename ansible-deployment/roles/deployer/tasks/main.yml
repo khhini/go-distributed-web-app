@@ -34,7 +34,7 @@
 
 - name: Checking app readiness for handling request
   uri:
-    uril: http://{{production_server}}/healthz
+    url: http://{{production_server}}/healthz
   register: pord_hc
   when: inventory_hostname == 'lb-server' and prod_deployment is succeeded
 

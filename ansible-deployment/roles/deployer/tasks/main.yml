@@ -1,6 +1,6 @@
 ---
 # tasks file for deployer
-- name: Removing {{production_server}} From LoadBalancer Pools
+- name: Removing "{{production_server}}" From LoadBalancer Pools
   copy:
     src: /etc/haproxy/haproxy.cfg.disable-{{production_server}}
     dest: /etc/haproxy/haproxy.cfg
@@ -35,10 +35,10 @@
 - name: Checking app readiness for handling request
   uri:
     url: http://{{production_server}}/healthz
-  register: pord_hc
+  register: prod_hc
   when: inventory_hostname == 'lb-server' and prod_deployment is succeeded
 
-- name: Register {{production_server}} to LoadBalancer Pools
+- name: Register "{{production_server}}" to LoadBalancer Pools
   copy:
     src: /etc/haproxy/haproxy.cfg.enabled-all
     dest: /etc/haproxy/haproxy.cfg

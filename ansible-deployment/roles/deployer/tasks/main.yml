@@ -12,7 +12,7 @@
   service:
     name: haproxy
     state: restarted
-  bacome: true
+  become: true
   register: disabled_prod
   when: inventory_hostname == 'lb-server'
 

@@ -14,7 +14,7 @@
     state: restarted
   bacome: true
   register: disabled_prod
-  when: inventory_hostname = 'lb-server'
+  when: inventory_hostname == 'lb-server'
 
 - name: Running new App version on Docker
   docker_container:
@@ -44,7 +44,7 @@
     dest: /etc/haproxy/haproxy.cfg
     remote_src: yes
   become: true
-  when: inventory_hostname == 'lb-server'
+  when: inventory_hostname == 'lb-server' and prod_hc is succeeded
 
 - name: Restarting haproxy service
   service:

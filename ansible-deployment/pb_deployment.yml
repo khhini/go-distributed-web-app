@@ -5,7 +5,7 @@
   force_handlers: true
   tasks:
     - name: Deploy App to Production
-      import_role:
+      include_role:
         name: deployer
       loop: "{{ query('inventory_hostnames', 'production', wantlist=True)}}"
       loop_control:

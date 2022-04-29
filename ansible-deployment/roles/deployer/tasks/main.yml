@@ -1,0 +1,54 @@
+---
+# tasks file for deployer
+- name: Removing {{production_server}} From LoadBalancer Pools
+  copy:
+    src: /etc/haproxy/haproxy.cfg.disable-{{production_server}}
+    dest: /etc/haproxy/haproxy.cfg
+    remote_src: yes
+  become: true
+  when: inventory_hostname == 'lb-server'
+
+- name: Restart haproxy service
+  service:
+    name: haproxy
+    state: restarted
+  bacome: true
+  register: disabled_prod
+  when: inventory_hostname = 'lb-server'
+
+- name: Running new App version on Docker
+  docker_container:
+    name: go-recipes-api
+    image: "khhini/go-recipes-api:{{IMAGE_TAG}}"
+    state: started
+    recreate: yes
+    env:
+      REDIS_SERVER: "{{REDIS_SERVER}}"
+      JWT_TOKEN: "{{JWT_SECRET}}"
+      MONGO_URI: "{{MONGO_URI}}"
+      MONGO_DATABASE: "{{MONGO_DATABASE}}"
+    published_ports:
+      - 80:8080
+  register: prod_deployment
+  when: inventory_hostname == '{{production_server}}' and disabled_prod is succeeded
+
+- name: Checking app readiness for handling request
+  uri:
+    uril: http://{{production_server}}/healthz
+  register: pord_hc
+  when: inventory_hostname == 'lb-server' and prod_deployment is cucceeded
+
+- name: Register {{production_server}} to LoadBalancer Pools
+  copy:
+    src: /etc/haproxy/haproxy.cfg.enabled-all
+    dest: /etc/haproxy/haproxy.cfg
+    remote_src: yes
+  become: true
+  when: inventory_hostname == 'lb-server'
+
+- name: Restarting haproxy service
+  service:
+    name: haproxy
+    state: restarted
+  become: true
+  when: inventory_hostname == 'lb-server'

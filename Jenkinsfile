@@ -7,14 +7,13 @@ pipeline {
         GO114MODULE = 'on'
         CGO_ENABLED = 0 
         GOPATH = "${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_ID}"
-        REDIS_SERVER="localhost:6379" 
+        REDIS_SERVER="db-server:6379" 
         JWT_SECRET="F8A8znNgZt3q8yXHDa4QiQ=="
-        MONGO_URI="mongodb://root:rootpass@localhost:27017/" 
+        MONGO_URI="mongodb://root:rootpass@db-server:27017/" 
         MONGO_DATABASE="demo"  
         GIN_MODE="release"
         DOCKERHUB_CREDENTIALS=credentials('dockerhub')
         GIT_COMMIT = sh(returnStdout: true, script: "git rev-parse --short=10 HEAD").trim()
-        
     }
     stages {
         stage('Test Source Code'){

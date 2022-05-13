@@ -22,6 +22,7 @@
     image: "khhini/go-recipes-api:{{IMAGE_TAG}}"
     state: started
     recreate: yes
+    restart_policy: always
     env:
       REDIS_SERVER: "{{REDIS_SERVER}}"
       JWT_TOKEN: "{{JWT_SECRET}}"

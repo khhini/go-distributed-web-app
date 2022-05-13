@@ -16,7 +16,7 @@
   register: disabled_prod
   when: inventory_hostname == 'lb-server'
 
-- name: Running new App version on Docker
+- name: Deploy new version App on "{{production_server}}"
   docker_container:
     name: go-recipes-api
     image: "khhini/go-recipes-api:{{IMAGE_TAG}}"
@@ -32,7 +32,7 @@
   register: prod_deployment
   when: inventory_hostname == production_server and disabled_prod is succeeded
 
-- name: Checking app readiness for handling request
+- name: Checking "{{production_server}}" ready to handle request
   uri:
     url: http://{{production_server}}/healthz
   register: prod_hc

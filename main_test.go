@@ -54,3 +54,18 @@ func TestNewRecipeHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 }
+
+func TestListRecipesHandler(t *testing.T) {
+	r := SetupRouter()
+	r.GET("/recipes", ListRecipesHandler)
+
+	req, _ := http.NewRequest("GET", "/recipes", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	var recipes []Recipe
+	json.Unmarshal([]byte(w.Body.String()), &recipes)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, 493, len(recipes))
+}

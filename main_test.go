@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func SetupRouter() *gin.Engine {
@@ -115,4 +115,21 @@ func TestDeleteRecipeHandler(t *testing.T) {
 	r.ServeHTTP(w, reqNotFound)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestSearchRecipesHandler(t *testing.T) {
+	r := SetupRouter()
+	r.GET("/recipes/search", SearchRecipesHandler)
+	tag := "italian"
+	req, _ := http.NewRequest("GET", "/recipes/search?tag="+tag, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	var recipes []Recipe
+	json.Unmarshal([]byte(w.Body.String()), &recipes)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	for _, x := range recipes {
+		assert.Contains(t, []string(x.Tags), tag)
+	}
+
 }

@@ -69,3 +69,33 @@ func TestListRecipesHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, 493, len(recipes))
 }
+
+func TestUpdateRecipeHandler(t *testing.T) {
+	r := SetupRouter()
+	r.PUT("/recipes/:id", UpdateRecipeHandler)
+
+	recipe := Recipe{
+		ID:   "c0283p3d0cvuglq85lpg",
+		Name: "Gnocchi",
+		Ingredients: []string{
+			"5 large Idaho potatoes\r",
+			"2 eggs\r",
+			"3/4 cup grated Parmesan\r",
+			"3 1/2 cup all-purpose flour\r",
+		},
+	}
+
+	jsonValue, _ := json.Marshal(recipe)
+	reqFound, _ := http.NewRequest("PUT", "/recipes/"+recipe.ID, bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	reqNotFound, _ := http.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(jsonValue))
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqNotFound)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+}

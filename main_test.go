@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,5 +38,19 @@ func TestHealthzHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockUserResp, w.Body.String())
+}
 
+func TestNewRecipeHandler(t *testing.T) {
+	r := SetupRouter()
+	r.POST("/recipes", NewRecipeHandler)
+
+	recipe := Recipe{
+		Name: "New York Pizza",
+	}
+	jsonValue, _ := json.Marshal(recipe)
+	req, _ := http.NewRequest("POST", "/recipes", bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }

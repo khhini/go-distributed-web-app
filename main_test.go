@@ -29,7 +29,6 @@ func TestIndexHandler(t *testing.T) {
 func TestHealthzHandler(t *testing.T) {
 	mockUserResp := `{"ping":"ping"}`
 	r := SetupRouter()
-	r.GET("/healthz", IndexHandler)
 	req, _ := http.NewRequest("GET", "/healthz", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -70,7 +69,7 @@ func TestListRecipesHandler(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, 494, len(recipes))
+	assert.Equal(t, 493, len(recipes))
 }
 
 func TestUpdateRecipeHandler(t *testing.T) {

@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/sessions"
+	redisStore "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/khhini/go-distributed-web-app/docs"
@@ -19,9 +21,9 @@ import (
 var ctx context.Context
 var err error
 var client *mongo.Client
-var collection *mongo.Collection
 
 var recipesHandler *handlers.RecipeHandler
+var authHandler *handlers.AuthHandler
 
 func init() {
 	// programmatically set swagger info
@@ -38,7 +40,8 @@ func init() {
 		log.Fatal(err)
 	}
 	log.Println("Connected to MongoDB")
-	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+	collection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
+	userCollection := client.Database(os.Getenv("MONGO_DATABASE")).Collection("users")
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_SERVER"),
@@ -50,6 +53,7 @@ func init() {
 	log.Println(status)
 
 	recipesHandler = handlers.NewRecipesHandler(ctx, collection, redisClient)
+	authHandler = handlers.NewAuthHandler(ctx, userCollection)
 }
 
 // IndexHandler godoc
@@ -83,11 +87,24 @@ func HealthzHandler(c *gin.Context) {
 // SetupRouter godoc
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
-	router.POST("/recipes", recipesHandler.NewRecipeHandler)
+	store, _ := redisStore.NewStore(10, "tcp", "localhost:6379", "", []byte(os.Getenv("JWT_SECRET")))
+	router.Use(sessions.Sessions("recipes_api", store))
+
 	router.GET("/recipes", recipesHandler.ListRecipesHandler)
-	router.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
-	router.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
 	router.GET("/recipes/search", recipesHandler.SearchRecipesHandler)
+
+	router.POST("/signin", authHandler.SignInJWTHandler)
+	router.POST("/signout", authHandler.SignOutHandler)
+	router.POST("/refresh", authHandler.RefreshJWTHandler)
+
+	authorized := router.Group("/")
+	authorized.Use(authHandler.AuthJWTMiddleware())
+	{
+		authorized.POST("/recipes", recipesHandler.NewRecipeHandler)
+		authorized.PUT("/recipes/:id", recipesHandler.UpdateRecipeHandler)
+		authorized.DELETE("/recipes/:id", recipesHandler.DeleteRecipeHandler)
+	}
+
 	router.GET("/", IndexHandler)
 	router.GET("/healthz", IndexHandler)
 

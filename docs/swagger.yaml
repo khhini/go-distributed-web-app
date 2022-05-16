@@ -1,4 +1,11 @@
 definitions:
+  handlers.JWTOutput:
+    properties:
+      expires:
+        type: string
+      token:
+        type: string
+    type: object
   models.Recipe:
     properties:
       _id:
@@ -19,6 +26,13 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  models.User:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
     type: object
 info:
   contact:
@@ -75,6 +89,10 @@ paths:
         name: recipe
         schema:
           $ref: '#/definitions/models.Recipe'
+      - description: JWT Token
+        in: header
+        name: Authorization
+        type: string
       produces:
       - application/json
       responses:
@@ -86,10 +104,16 @@ paths:
           description: Bad Request
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Add new recipe
       tags:
       - recipes
@@ -103,11 +127,19 @@ paths:
         in: path
         name: id
         type: string
+      - description: JWT Token
+        in: header
+        name: Authorization
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
           schema:
             type: string
         "404":
@@ -118,6 +150,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Delete recipe
       tags:
       - recipes
@@ -135,6 +169,10 @@ paths:
         name: recipe
         schema:
           $ref: '#/definitions/models.Recipe'
+      - description: JWT Token
+        in: header
+        name: Authorization
+        type: string
       produces:
       - application/json
       responses:
@@ -146,6 +184,10 @@ paths:
           description: Bad Request
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "404":
           description: Not Found
           schema:
@@ -154,6 +196,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: Update recipe
       tags:
       - recipes
@@ -181,6 +225,110 @@ paths:
           schema:
             type: string
       summary: List recipes by tag
+      tags:
+      - recipes
+  /signin:
+    post:
+      consumes:
+      - application/json
+      description: Refresh JWT Token
+      parameters:
+      - description: jwt token
+        in: header
+        name: Authorization
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.JWTOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Refresh JWT Token
+      tags:
+      - recipes
+  /signout:
+    post:
+      consumes:
+      - application/json
+      description: Sign Out user by removing cookies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Sign Out user
+      tags:
+      - recipes
+  /singin:
+    post:
+      consumes:
+      - application/json
+      description: Sigin API with username and password
+      parameters:
+      - description: user object
+        in: body
+        name: user
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.JWTOutput'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Sigin API with username and password
       tags:
       - recipes
 swagger: "2.0"

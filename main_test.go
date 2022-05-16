@@ -8,12 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/khhini/go-distributed-web-app/handlers"
 	"github.com/khhini/go-distributed-web-app/models"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var objectID primitive.ObjectID
+var jwtToken handlers.JWTOutput
 
 func TestIndexHandler(t *testing.T) {
 	mockUserResp := `{"ping":"ping"}`
@@ -37,6 +39,68 @@ func TestHealthzHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, mockUserResp, w.Body.String())
 }
+func TestSignInJWTHandler(t *testing.T) {
+	r := SetupRouter()
+
+	user := models.User{
+		Password: "wrongpassword",
+		Username: "admin",
+	}
+	jsonValue, _ := json.Marshal(user)
+	req, err := http.NewRequest("POST", "/signin", bytes.NewBuffer(jsonValue))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	user = models.User{
+		Password: "passadmin",
+		Username: "admin",
+	}
+	jsonValue, _ = json.Marshal(user)
+	req, err = http.NewRequest("POST", "/signin", bytes.NewBuffer(jsonValue))
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	json.Unmarshal([]byte(w.Body.String()), &jwtToken)
+
+	assert.NotNil(t, jwtToken)
+}
+
+func TestRefreshJWTHandler(t *testing.T) {
+	r := SetupRouter()
+
+	req, err := http.NewRequest("POST", "/refresh", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, `{"error":"token contains an invalid number of segments"}`, w.Body.String())
+
+	req, err = http.NewRequest("POST", "/refresh", nil)
+	req.Header.Set("Authorization", jwtToken.Token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, `{"error":"Token is not expired yet"}`, w.Body.String())
+
+	req, err = http.NewRequest("POST", "/refresh", nil)
+	req.Header.Set("Authorization", "randominvalidtoken")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	assert.Equal(t, `{"error":"token contains an invalid number of segments"}`, w.Body.String())
+
+}
 
 func TestNewRecipeHandler(t *testing.T) {
 	r := SetupRouter()
@@ -49,6 +113,22 @@ func TestNewRecipeHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	req, err = http.NewRequest("POST", "/recipes", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Authorization", "randominvalidtoken")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	req, err = http.NewRequest("POST", "/recipes", bytes.NewBuffer(jsonValue))
+	req.Header.Set("Authorization", jwtToken.Token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
 	var payload map[string]string
 	json.Unmarshal([]byte(w.Body.String()), &payload)
 	objectID, _ = primitive.ObjectIDFromHex(payload["recipeID"])
@@ -56,6 +136,7 @@ func TestNewRecipeHandler(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.NotNil(t, objectID)
+
 }
 
 func TestListRecipesHandler(t *testing.T) {
@@ -93,9 +174,27 @@ func TestUpdateRecipeHandler(t *testing.T) {
 	r.ServeHTTP(w, reqFound)
 
 	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	reqFound, err = http.NewRequest("PUT", fmt.Sprintf("/recipes/%s", recipe.ID.Hex()), bytes.NewBuffer(jsonValue))
+	reqFound.Header.Set("Authorization", "randominvalidtoken")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	jsonValue, _ = json.Marshal(recipe)
+	reqFound, err = http.NewRequest("PUT", fmt.Sprintf("/recipes/%s", recipe.ID.Hex()), bytes.NewBuffer(jsonValue))
+	reqFound.Header.Set("Authorization", jwtToken.Token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	reqNotFound, _ := http.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(jsonValue))
+	reqNotFound.Header.Set("Authorization", jwtToken.Token)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, reqNotFound)
 
@@ -106,16 +205,35 @@ func TestUpdateRecipeHandler(t *testing.T) {
 func TestDeleteRecipeHandler(t *testing.T) {
 	r := SetupRouter()
 
-	reqFound, _ := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	reqFound, err := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, reqFound)
 
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	reqFound, err = http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	reqFound.Header.Set("Authorization", "randominvalidtoken")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	reqFound, err = http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	reqFound.Header.Set("Authorization", jwtToken.Token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, reqFound)
+
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	reqNotFound, _ := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	reqNotFound, err := http.NewRequest("DELETE", fmt.Sprintf("/recipes/%s", objectID.Hex()), nil)
+	reqNotFound.Header.Set("Authorization", jwtToken.Token)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, reqNotFound)
 
+	assert.Nil(t, err)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 

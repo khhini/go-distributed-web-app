@@ -39,11 +39,15 @@ func NewRecipesHandler(ctx context.Context, collection *mongo.Collection, redisC
 // @Accept       json
 // @Produce      json
 // @Param        recipe body models.Recipe false "recipe object"
+// @Param		 Authorization header string flase "JWT Token"
+// @Security ApiKeyAuth
 // @Success      200  {object}  models.Recipe
 // @Failure		 400  {string}  StatusBadRequest
+// @Failure		 401  {string}  StatusUnauthorized
 // @Failure		 500  {string}  StatusInternalServerError
 // @Router       /recipes [post]
 func (handler *RecipeHandler) NewRecipeHandler(c *gin.Context) {
+
 	var recipe models.Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -127,9 +131,12 @@ func (handler *RecipeHandler) ListRecipesHandler(c *gin.Context) {
 // @Produce      json
 // @Param		 id path string false "recipe id"
 // @Param        recipe body models.Recipe false "recipe object"
+// @Param		 Authorization header string flase "JWT Token"
+// @Security ApiKeyAuth
 // @Success      200  {object}  models.Recipe
 // @Failure		 400  {string}  StatusBadRequest
 // @Failure		 404  {string}  StatusNotFound
+// @Failure		 401  {string}  StatusUnauthorized
 // @Failure		 500  {string}  StatusInternalServerError
 // @Router       /recipes/{id} [put]
 func (handler *RecipeHandler) UpdateRecipeHandler(c *gin.Context) {
@@ -177,8 +184,11 @@ func (handler *RecipeHandler) UpdateRecipeHandler(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param		 id path string false "recipe id"
+// @Param		 Authorization header string flase "JWT Token"
+// @Security ApiKeyAuth
 // @Success      200  {string}  StatusOK
 // @Failure      404  {string}  StatusNotFound
+// @Failure		 401  {string}  StatusUnauthorized
 // @Failure      500  {string}  StatusInternalServerError
 // @Router       /recipes/{id} [delete]
 func (handler *RecipeHandler) DeleteRecipeHandler(c *gin.Context) {

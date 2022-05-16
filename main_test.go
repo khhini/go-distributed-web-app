@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/khhini/go-distributed-web-app/models"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -40,7 +41,7 @@ func TestHealthzHandler(t *testing.T) {
 func TestNewRecipeHandler(t *testing.T) {
 	r := SetupRouter()
 
-	recipe := Recipe{
+	recipe := models.Recipe{
 		Name: "New York Pizza",
 	}
 	jsonValue, _ := json.Marshal(recipe)
@@ -64,7 +65,7 @@ func TestListRecipesHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	var recipes []Recipe
+	var recipes []models.Recipe
 	json.Unmarshal([]byte(w.Body.String()), &recipes)
 
 	assert.Nil(t, err)
@@ -75,7 +76,7 @@ func TestListRecipesHandler(t *testing.T) {
 func TestUpdateRecipeHandler(t *testing.T) {
 	r := SetupRouter()
 
-	recipe := Recipe{
+	recipe := models.Recipe{
 		ID:   objectID,
 		Name: "Gnocchi",
 		Ingredients: []string{
@@ -125,7 +126,7 @@ func TestSearchRecipesHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "/recipes/search?tag="+tag, nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
-	var recipes []Recipe
+	var recipes []models.Recipe
 	json.Unmarshal([]byte(w.Body.String()), &recipes)
 
 	assert.Nil(t, err)

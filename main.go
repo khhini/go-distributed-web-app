@@ -41,7 +41,7 @@ func init() {
 	collection = client.Database(os.Getenv("MONGO_DATABASE")).Collection("recipes")
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     os.Getenv("REDIS_SERVER"),
 		Password: "",
 		DB:       0,
 	})

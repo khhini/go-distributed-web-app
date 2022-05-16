@@ -8,9 +8,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/khhini/go-distributed-web-app/docs"
 	"github.com/rs/xid"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// Recipe godoc
 type Recipe struct {
 	ID           string    `json:"id"`
 	Name         string    `json:"name"`
@@ -20,7 +24,30 @@ type Recipe struct {
 	PublishedAt  time.Time `json:"publishedAt"`
 }
 
-// IndexHandler ...
+var recipes []Recipe
+
+func init() {
+	// programmatically set swagger info
+	docs.SwaggerInfo.Title = "Recipes API"
+	docs.SwaggerInfo.Description = "This is a sample server Recipe server."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+
+	recipes = make([]Recipe, 0)
+	file, _ := ioutil.ReadFile("recipes.json")
+	_ = json.Unmarshal([]byte(file), &recipes)
+}
+
+// IndexHandler godoc
+// @Summary      Index endpoint
+// @Description  Index endpoint
+// @Tags         /
+// @Accept       json
+// @Produce      json
+// @Success      200  {string}  StatusOK
+// @Router       / [get]
 func IndexHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"ping": "ping",
@@ -28,13 +55,30 @@ func IndexHandler(c *gin.Context) {
 }
 
 // HealthzHandler godoc
-// describtion Health Check Handler
+// @Summary      Health Check endpoint
+// @Description  Health Check endpoint
+// @Tags         /
+// @Accept       json
+// @Produce      json
+// @Success      200  {string}  StatusOK
+// @Router       / [get]
 func HealthzHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"ping": "ping",
 	})
 }
 
+// NewRecipeHandler godoc
+// @Summary      Add new recipe
+// @Description  Add new recipe
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Param        recipe body Recipe false "recipe object"
+// @Success      200  {object}  Recipe
+// @Failure		 400  {string}  StatusBadRequest
+// @Failure		 500  {string}  StatusInternalServerError
+// @Router       /recipes [post]
 func NewRecipeHandler(c *gin.Context) {
 	var recipe Recipe
 	if err := c.ShouldBindJSON(&recipe); err != nil {
@@ -50,18 +94,32 @@ func NewRecipeHandler(c *gin.Context) {
 
 }
 
+// ListRecipesHandler godoc
+// @Summary      List recipes
+// @Description  get all recipes
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}  Recipe
+// @Failure		 500  {string}  StatusInternalServerError
+// @Router       /recipes [get]
 func ListRecipesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipes)
 }
 
-var recipes []Recipe
-
-func init() {
-	recipes = make([]Recipe, 0)
-	file, _ := ioutil.ReadFile("recipes.json")
-	_ = json.Unmarshal([]byte(file), &recipes)
-}
-
+// UpdateRecipeHandler godoc
+// @Summary      Update recipe
+// @Description  Update recipe
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Param		 id path string false "recipe id"
+// @Param        recipe body Recipe false "recipe object"
+// @Success      200  {object}  Recipe
+// @Failure		 400  {string}  StatusBadRequest
+// @Failure		 404  {string}  StatusNotFound
+// @Failure		 500  {string}  StatusInternalServerError
+// @Router       /recipes/{id} [put]
 func UpdateRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 	var recipe Recipe
@@ -92,6 +150,17 @@ func UpdateRecipeHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, recipe)
 }
 
+// DeleteRecipeHandler godoc
+// @Summary      Delete recipe
+// @Description  Delete recipe
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Param		 id path string false "recipe id"
+// @Success      200  {string}  StatusOK
+// @Failure      404  {string}  StatusNotFound
+// @Failure      500  {string}  StatusInternalServerError
+// @Router       /recipes/{id} [delete]
 func DeleteRecipeHandler(c *gin.Context) {
 	id := c.Param("id")
 	index := -1
@@ -113,6 +182,16 @@ func DeleteRecipeHandler(c *gin.Context) {
 	})
 }
 
+// SearchRecipesHandler godoc
+// @Summary      List recipes by tag
+// @Description  get all recipes by tag
+// @Tags         recipes
+// @Accept       json
+// @Produce      json
+// @Param        tag    query     string  false  "recipe search by tag"
+// @Success      200  {array}  Recipe
+// @Failure		 500  {string}  StatusInternalServerError
+// @Router       /recipes/search [get]
 func SearchRecipesHandler(c *gin.Context) {
 	tag := c.Query("tag")
 	listOfRecipes := make([]Recipe, 0)
@@ -131,6 +210,12 @@ func SearchRecipesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, listOfRecipes)
 }
 
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 func main() {
 	router := gin.Default()
 	router.POST("/recipes", NewRecipeHandler)
@@ -140,5 +225,8 @@ func main() {
 	router.GET("/recipes/search", SearchRecipesHandler)
 	router.GET("/", IndexHandler)
 	router.GET("/healthz", IndexHandler)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.Run()
 }

@@ -11,5 +11,20 @@ services:
       - 27017:27017
     volumes:
       - dbdata:/data/db
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - ./conf:/usr/local/etc/redis
+
+  redisinsight:
+    image: redislabs/redisinsight
+    container_name: redisinsight
+    links:
+      - redis
+    ports:
+      - 8001:8001
 volumes:
   dbdata:

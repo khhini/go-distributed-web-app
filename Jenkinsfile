@@ -25,7 +25,6 @@ pipeline {
         }
         stage('Push Docker Image'){
             steps {
-                System.setProperty("org.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL", "86400");
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
                 sh "docker push khhini/go-recipes-api:${GIT_COMMIT}"
                 sh "docker image rm -f khhini/go-recipes-api:${GIT_COMMIT}"

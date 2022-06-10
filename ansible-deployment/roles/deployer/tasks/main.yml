@@ -1,10 +1,7 @@
 ---
 # tasks file for deployer
-- name: Removing "{{production_server}}" From LoadBalancer Pools
-  copy:
-    src: /etc/haproxy/haproxy.cfg.disable-{{production_server}}
-    dest: /etc/haproxy/haproxy.cfg
-    remote_src: yes
+- name: Removing "{{ production_server }}" from LoadBalancer Pools
+  command: sed -i.bak 's/server prod-server-1 10.1.1.31:80/#server prod-server-1 10.1.1.31:80/g' /etc/haproxy/haproxy.cfg
   become: true
   when: inventory_hostname == 'lb-server'
 
@@ -39,13 +36,10 @@
   register: prod_hc
   when: inventory_hostname == 'lb-server' and prod_deployment is succeeded
 
-- name: Register "{{production_server}}" to LoadBalancer Pools
-  copy:
-    src: /etc/haproxy/haproxy.cfg.enabled-all
-    dest: /etc/haproxy/haproxy.cfg
-    remote_src: yes
+- name: Register "{{ production_server }}" to LoadBalancer Pools
+  command: sed -i.bak 's/#server {{ production_server }}/server {{ production_server }}/g' /etc/haproxy/haproxy.cfg
   become: true
-  when: inventory_hostname == 'lb-server' and prod_hc is succeeded
+  when: inventory_hostname == 'lb-server'
 
 - name: Restarting haproxy service
   service:
